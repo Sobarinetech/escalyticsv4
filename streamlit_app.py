@@ -102,6 +102,11 @@ def analyze_attachment(file):
     except Exception as e:
         return f"Error analyzing attachment: {e}"
 
+# Contextual Attachment Analysis based on the email content
+def analyze_attachment_with_context(attachment_text, email_content):
+    prompt = f"Analyze the attached document in the context of the following email:\n\nEmail:\n{email_content}\n\nAttachment:\n{attachment_text}\n\nProvide an analysis of how the attachment relates to the email's subject."
+    return get_ai_response(prompt, email_content)
+
 # Process Email When Button Clicked
 if email_content and st.button("🔍 Generate Insights"):
     try:
@@ -129,7 +134,7 @@ if email_content and st.button("🔍 Generate Insights"):
 
                     # Attachment Analysis
                     attachment_text = analyze_attachment(uploaded_file) if uploaded_file and features["attachment_analysis"] else None
-                    future_attachment_analysis = executor.submit(get_ai_response, "Analyze this attachment content and relate it to the email content:\n\n" + attachment_text + "\n\nEmail content:\n\n", email_content) if attachment_text else None
+                    future_attachment_analysis = executor.submit(analyze_attachment_with_context, attachment_text, email_content) if attachment_text else None
 
                     # Extract Results
                     summary = future_summary.result() if future_summary else None
