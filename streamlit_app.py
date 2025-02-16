@@ -35,6 +35,7 @@ features = {
     "clarity": True,
     "best_response_time": False,
     "professionalism": True,
+    "scenario_responses": True,  # NEW: Enable scenario-based suggested responses
 }
 
 # Email Input Section
@@ -85,6 +86,19 @@ if email_content and st.button("🔍 Generate Insights"):
                     future_grammar = executor.submit(get_ai_response, "Check spelling & grammar mistakes and suggest fixes:\n\n", email_content) if features["grammar_check"] else None
                     future_clarity = executor.submit(get_ai_response, "Rate the clarity of this email:\n\n", email_content) if features["clarity"] else None
                     future_professionalism = executor.submit(get_ai_response, "Rate the professionalism of this email on a scale of 1-10:\n\n", email_content) if features["professionalism"] else None
+                    
+                    # Scenario-Based Responses
+                    scenario_prompts = [
+                        "Generate a response for a customer complaint:\n\n",
+                        "Generate a response for a product inquiry:\n\n",
+                        "Generate a response for a billing issue:\n\n",
+                        "Generate a response for a technical support request:\n\n",
+                        "Generate a response for a general feedback:\n\n"
+                    ]
+                    future_scenario_responses = [
+                        executor.submit(get_ai_response, prompt, email_content) if features["scenario_responses"] else None
+                        for prompt in scenario_prompts
+                    ]
 
                     # Extract Results
                     summary = future_summary.result() if future_summary else None
@@ -97,6 +111,7 @@ if email_content and st.button("🔍 Generate Insights"):
                     clarity_score = future_clarity.result() if future_clarity else None
                     professionalism_score = future_professionalism.result() if future_professionalism else None
                     readability_score = get_readability(email_content)
+                    scenario_responses = [future.result() if future else None for future in future_scenario_responses]
 
                 # Display Results Based on Enabled Features
                 if summary:
@@ -141,13 +156,29 @@ if email_content and st.button("🔍 Generate Insights"):
                     st.subheader("🏆 Professionalism Score")
                     st.write(f"Rated: {professionalism_score} / 10")
 
+                if scenario_responses:
+                    st.subheader("📜 Scenario-Based Suggested Responses")
+                    scenario_titles = [
+                        "Customer Complaint",
+                        "Product Inquiry",
+                        "Billing Issue",
+                        "Technical Support Request",
+                        "General Feedback"
+                    ]
+                    for title, response in zip(scenario_titles, scenario_responses):
+                        if response:
+                            st.write(f"**{title}:**")
+                            st.write(response)
+                            st.write("---")
+
                 # Export Options
                 if features["export"]:
                     export_data = json.dumps({
                         "summary": summary, "response": response, "highlights": highlights,
                         "grammar_issues": grammar_issues,
                         "clarity_score": clarity_score,
-                        "professionalism_score": professionalism_score
+                        "professionalism_score": professionalism_score,
+                        "scenario_responses": scenario_responses
                     }, indent=4)
                     st.download_button("📥 Download JSON", data=export_data, file_name="analysis.json", mime="application/json")
 
