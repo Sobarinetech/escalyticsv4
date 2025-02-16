@@ -84,6 +84,7 @@ def export_pdf(text):
     pdf.multi_cell(0, 10, text)
     return pdf.output(dest='S').encode('latin1')
 
+# Analyze attachment based on its type
 def analyze_attachment(file):
     try:
         if file.type == "text/plain":
