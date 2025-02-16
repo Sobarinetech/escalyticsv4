@@ -42,6 +42,16 @@ features = {
 email_content = st.text_area("📩 Paste your email content here:", height=200)
 MAX_EMAIL_LENGTH = 2000  # Increased for better analysis
 
+# Scenario Dropdown Selection
+scenario_options = [
+    "Customer Complaint",
+    "Product Inquiry",
+    "Billing Issue",
+    "Technical Support Request",
+    "General Feedback"
+]
+selected_scenario = st.selectbox("Select a scenario for suggested response:", scenario_options)
+
 # Cache AI Responses for Performance
 @st.cache_data(ttl=3600)
 def get_ai_response(prompt, email_content):
@@ -87,18 +97,9 @@ if email_content and st.button("🔍 Generate Insights"):
                     future_clarity = executor.submit(get_ai_response, "Rate the clarity of this email:\n\n", email_content) if features["clarity"] else None
                     future_professionalism = executor.submit(get_ai_response, "Rate the professionalism of this email on a scale of 1-10:\n\n", email_content) if features["professionalism"] else None
                     
-                    # Scenario-Based Responses
-                    scenario_prompts = [
-                        "Generate a response for a customer complaint:\n\n",
-                        "Generate a response for a product inquiry:\n\n",
-                        "Generate a response for a billing issue:\n\n",
-                        "Generate a response for a technical support request:\n\n",
-                        "Generate a response for a general feedback:\n\n"
-                    ]
-                    future_scenario_responses = [
-                        executor.submit(get_ai_response, prompt, email_content) if features["scenario_responses"] else None
-                        for prompt in scenario_prompts
-                    ]
+                    # Scenario-Based Response
+                    scenario_prompt = f"Generate a response for a {selected_scenario.lower()}:\n\n"
+                    future_scenario_response = executor.submit(get_ai_response, scenario_prompt, email_content) if features["scenario_responses"] else None
 
                     # Extract Results
                     summary = future_summary.result() if future_summary else None
@@ -111,7 +112,7 @@ if email_content and st.button("🔍 Generate Insights"):
                     clarity_score = future_clarity.result() if future_clarity else None
                     professionalism_score = future_professionalism.result() if future_professionalism else None
                     readability_score = get_readability(email_content)
-                    scenario_responses = [future.result() if future else None for future in future_scenario_responses]
+                    scenario_response = future_scenario_response.result() if future_scenario_response else None
 
                 # Display Results Based on Enabled Features
                 if summary:
@@ -156,20 +157,10 @@ if email_content and st.button("🔍 Generate Insights"):
                     st.subheader("🏆 Professionalism Score")
                     st.write(f"Rated: {professionalism_score} / 10")
 
-                if scenario_responses:
-                    st.subheader("📜 Scenario-Based Suggested Responses")
-                    scenario_titles = [
-                        "Customer Complaint",
-                        "Product Inquiry",
-                        "Billing Issue",
-                        "Technical Support Request",
-                        "General Feedback"
-                    ]
-                    for title, response in zip(scenario_titles, scenario_responses):
-                        if response:
-                            st.write(f"**{title}:**")
-                            st.write(response)
-                            st.write("---")
+                if scenario_response:
+                    st.subheader("📜 Scenario-Based Suggested Response")
+                    st.write(f"**{selected_scenario}:**")
+                    st.write(scenario_response)
 
                 # Export Options
                 if features["export"]:
@@ -178,7 +169,7 @@ if email_content and st.button("🔍 Generate Insights"):
                         "grammar_issues": grammar_issues,
                         "clarity_score": clarity_score,
                         "professionalism_score": professionalism_score,
-                        "scenario_responses": scenario_responses
+                        "scenario_response": scenario_response
                     }, indent=4)
                     st.download_button("📥 Download JSON", data=export_data, file_name="analysis.json", mime="application/json")
 
