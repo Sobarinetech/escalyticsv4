@@ -22,19 +22,19 @@ features = {
     "response": True,
     "export": True,
     "tone": True,
-    "urgency": True,
+    "urgency": False,
     "task_extraction": True,
     "subject_recommendation": True,
-    "category": True,
-    "politeness": True,
-    "emotion": True,
-    "spam_check": True,
-    "readability": True,
-    "root_cause": True,  # NEW: Identifies the reason behind tone/sentiment.
-    "grammar_check": True,  # NEW: Checks spelling & grammar.
-    "clarity": True,  # NEW: Rates clarity of the email.
-    "best_response_time": True,  # NEW: Suggests the best time to respond.
-    "professionalism": True,  # NEW: Rates professionalism level.
+    "category": False,
+    "politeness": False,
+    "emotion": False,
+    "spam_check": False,
+    "readability": False,
+    "root_cause": False,
+    "grammar_check": True,
+    "clarity": True,
+    "best_response_time": False,
+    "professionalism": True,
 }
 
 # Email Input Section
@@ -80,17 +80,10 @@ if email_content and st.button("🔍 Generate Insights"):
                     future_response = executor.submit(get_ai_response, "Generate a professional response to this email:\n\n", email_content) if features["response"] else None
                     future_highlights = executor.submit(get_ai_response, "Highlight key points:\n\n", email_content) if features["highlights"] else None
                     future_tone = executor.submit(get_ai_response, "Detect the tone of this email:\n\n", email_content) if features["tone"] else None
-                    future_urgency = executor.submit(get_ai_response, "Analyze urgency level:\n\n", email_content) if features["urgency"] else None
                     future_tasks = executor.submit(get_ai_response, "List actionable tasks:\n\n", email_content) if features["task_extraction"] else None
                     future_subject = executor.submit(get_ai_response, "Suggest a professional subject line:\n\n", email_content) if features["subject_recommendation"] else None
-                    future_category = executor.submit(get_ai_response, "Categorize this email:\n\n", email_content) if features["category"] else None
-                    future_politeness = executor.submit(get_ai_response, "Evaluate politeness score:\n\n", email_content) if features["politeness"] else None
-                    future_emotion = executor.submit(get_ai_response, "Analyze emotions in this email:\n\n", email_content) if features["emotion"] else None
-                    future_spam = executor.submit(get_ai_response, "Detect if this email is spam/scam:\n\n", email_content) if features["spam_check"] else None
-                    future_root_cause = executor.submit(get_ai_response, "Analyze the root cause of the email tone and sentiment:\n\n", email_content) if features["root_cause"] else None
                     future_grammar = executor.submit(get_ai_response, "Check spelling & grammar mistakes and suggest fixes:\n\n", email_content) if features["grammar_check"] else None
                     future_clarity = executor.submit(get_ai_response, "Rate the clarity of this email:\n\n", email_content) if features["clarity"] else None
-                    future_best_time = executor.submit(get_ai_response, "Suggest the best time to respond to this email:\n\n", email_content) if features["best_response_time"] else None
                     future_professionalism = executor.submit(get_ai_response, "Rate the professionalism of this email on a scale of 1-10:\n\n", email_content) if features["professionalism"] else None
 
                     # Extract Results
@@ -98,17 +91,10 @@ if email_content and st.button("🔍 Generate Insights"):
                     response = future_response.result() if future_response else None
                     highlights = future_highlights.result() if future_highlights else None
                     tone = future_tone.result() if future_tone else None
-                    urgency = future_urgency.result() if future_urgency else None
                     tasks = future_tasks.result() if future_tasks else None
                     subject_recommendation = future_subject.result() if future_subject else None
-                    category = future_category.result() if future_category else None
-                    politeness = future_politeness.result() if future_politeness else None
-                    emotion = future_emotion.result() if future_emotion else None
-                    spam_status = future_spam.result() if future_spam else None
-                    root_cause = future_root_cause.result() if future_root_cause else None
                     grammar_issues = future_grammar.result() if future_grammar else None
                     clarity_score = future_clarity.result() if future_clarity else None
-                    best_response_time = future_best_time.result() if future_best_time else None
                     professionalism_score = future_professionalism.result() if future_professionalism else None
                     readability_score = get_readability(email_content)
 
@@ -135,25 +121,13 @@ if email_content and st.button("🔍 Generate Insights"):
                     st.subheader("🎭 Email Tone")
                     st.write(tone)
 
-                if urgency:
-                    st.subheader("⚠️ Urgency Level")
-                    st.write(urgency)
-
                 if tasks:
                     st.subheader("📝 Actionable Tasks")
                     st.write(tasks)
 
-                if category:
-                    st.subheader("📂 Email Category")
-                    st.write(category)
-
-                if features["readability"]:
-                    st.subheader("📖 Readability Score")
-                    st.write(f"{readability_score} / 10")
-
-                if root_cause:
-                    st.subheader("🧐 Root Cause Analysis")
-                    st.write(root_cause)
+                if subject_recommendation:
+                    st.subheader("📬 Subject Line Recommendation")
+                    st.write(subject_recommendation)
 
                 if grammar_issues:
                     st.subheader("🔎 Grammar & Spelling Check")
@@ -163,10 +137,6 @@ if email_content and st.button("🔍 Generate Insights"):
                     st.subheader("🔍 Email Clarity Score")
                     st.write(clarity_score)
 
-                if best_response_time:
-                    st.subheader("🕒 Best Time to Respond")
-                    st.write(best_response_time)
-
                 if professionalism_score:
                     st.subheader("🏆 Professionalism Score")
                     st.write(f"Rated: {professionalism_score} / 10")
@@ -175,8 +145,8 @@ if email_content and st.button("🔍 Generate Insights"):
                 if features["export"]:
                     export_data = json.dumps({
                         "summary": summary, "response": response, "highlights": highlights,
-                        "root_cause": root_cause, "grammar_issues": grammar_issues,
-                        "clarity_score": clarity_score, "best_response_time": best_response_time,
+                        "grammar_issues": grammar_issues,
+                        "clarity_score": clarity_score,
                         "professionalism_score": professionalism_score
                     }, indent=4)
                     st.download_button("📥 Download JSON", data=export_data, file_name="analysis.json", mime="application/json")
