@@ -218,4 +218,4 @@ if email_content and st.button("🔍 Generate Insights"):
         st.error(f"❌ Error: {e}")
 
 else:
-    st.info("✏️ Paste email content and click 'Generate Insights' to begin.")
+    st.info("✏️ Paste email content and click 'Generate Insights')
