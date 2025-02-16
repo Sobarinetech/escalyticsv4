@@ -36,11 +36,16 @@ features = {
     "best_response_time": False,
     "professionalism": True,
     "scenario_responses": True,  # NEW: Enable scenario-based suggested responses
+    "attachment_analysis": True,  # NEW: Enable attachment analysis
+    "complexity_reduction": True,  # NEW: Enable complexity reduction
 }
 
 # Email Input Section
 email_content = st.text_area("📩 Paste your email content here:", height=200)
 MAX_EMAIL_LENGTH = 2000  # Increased for better analysis
+
+# File Upload Section
+uploaded_file = st.file_uploader("📎 Upload attachment for analysis (optional):", type=["txt", "pdf", "docx"])
 
 # Scenario Dropdown Selection
 scenario_options = [
@@ -77,6 +82,11 @@ def export_pdf(text):
     pdf.multi_cell(0, 10, text)
     return pdf.output(dest='S').encode('latin1')
 
+def analyze_attachment(file):
+    # Placeholder function for attachment analysis
+    # You can replace this with actual attachment analysis logic
+    return f"Analyzed content of the attachment: {file.name}"
+
 # Process Email When Button Clicked
 if email_content and st.button("🔍 Generate Insights"):
     try:
@@ -96,6 +106,7 @@ if email_content and st.button("🔍 Generate Insights"):
                     future_grammar = executor.submit(get_ai_response, "Check spelling & grammar mistakes and suggest fixes:\n\n", email_content) if features["grammar_check"] else None
                     future_clarity = executor.submit(get_ai_response, "Rate the clarity of this email:\n\n", email_content) if features["clarity"] else None
                     future_professionalism = executor.submit(get_ai_response, "Rate the professionalism of this email on a scale of 1-10:\n\n", email_content) if features["professionalism"] else None
+                    future_complexity_reduction = executor.submit(get_ai_response, "Explain this email in the simplest way possible:\n\n", email_content) if features["complexity_reduction"] else None
                     
                     # Scenario-Based Response
                     scenario_prompt = f"Generate a response for a {selected_scenario.lower()}:\n\n"
@@ -112,7 +123,9 @@ if email_content and st.button("🔍 Generate Insights"):
                     clarity_score = future_clarity.result() if future_clarity else None
                     professionalism_score = future_professionalism.result() if future_professionalism else None
                     readability_score = get_readability(email_content)
+                    complexity_reduction = future_complexity_reduction.result() if future_complexity_reduction else None
                     scenario_response = future_scenario_response.result() if future_scenario_response else None
+                    attachment_analysis = analyze_attachment(uploaded_file) if uploaded_file and features["attachment_analysis"] else None
 
                 # Display Results Based on Enabled Features
                 if summary:
@@ -157,10 +170,18 @@ if email_content and st.button("🔍 Generate Insights"):
                     st.subheader("🏆 Professionalism Score")
                     st.write(f"Rated: {professionalism_score} / 10")
 
+                if complexity_reduction:
+                    st.subheader("🔽 Simplified Explanation")
+                    st.write(complexity_reduction)
+
                 if scenario_response:
                     st.subheader("📜 Scenario-Based Suggested Response")
                     st.write(f"**{selected_scenario}:**")
                     st.write(scenario_response)
+                    
+                if attachment_analysis:
+                    st.subheader("📎 Attachment Analysis")
+                    st.write(attachment_analysis)
 
                 # Export Options
                 if features["export"]:
@@ -169,7 +190,9 @@ if email_content and st.button("🔍 Generate Insights"):
                         "grammar_issues": grammar_issues,
                         "clarity_score": clarity_score,
                         "professionalism_score": professionalism_score,
-                        "scenario_response": scenario_response
+                        "complexity_reduction": complexity_reduction,
+                        "scenario_response": scenario_response,
+                        "attachment_analysis": attachment_analysis
                     }, indent=4)
                     st.download_button("📥 Download JSON", data=export_data, file_name="analysis.json", mime="application/json")
 
