@@ -129,7 +129,7 @@ if email_content and st.button("🔍 Generate Insights"):
 
                     # Attachment Analysis
                     attachment_text = analyze_attachment(uploaded_file) if uploaded_file and features["attachment_analysis"] else None
-                    future_attachment_analysis = executor.submit(get_ai_response, "Analyze this attachment content:\n\n", attachment_text) if attachment_text else None
+                    future_attachment_analysis = executor.submit(get_ai_response, "Analyze this attachment content and relate it to the email content:\n\n" + attachment_text + "\n\nEmail content:\n\n", email_content) if attachment_text else None
 
                     # Extract Results
                     summary = future_summary.result() if future_summary else None
