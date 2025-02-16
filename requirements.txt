@@ -4,3 +4,4 @@ langdetect
 textblob
 fpdf
 docx2txt
+PyPDF2
