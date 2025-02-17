@@ -25,15 +25,15 @@ features = {
     "response": True,
     "export": True,
     "tone": True,
-    "urgency": True,
+    "urgency": False,
     "task_extraction": True,
     "subject_recommendation": True,
-    "category": True,
+    "category": False,
     "politeness": False,
     "emotion": False,
     "spam_check": False,
     "readability": False,
-    "root_cause": True,
+    "root_cause": False,
     "grammar_check": False,
     "clarity": True,
     "best_response_time": False,
@@ -243,13 +243,20 @@ if email_content and st.button("🔍 Generate Insights"):
                 # Phishing Links
                 if phishing_links:
                     st.subheader("⚠️ Phishing Links Detected")
-                    st.write(phishing_links)
+                    if phishing_links:
+                        for link in phishing_links:
+                            st.write(f"- {link}")
+                    else:
+                        st.write("No phishing links detected.")
 
                 # Sensitive Information Detected
                 if sensitive_info:
                     st.subheader("⚠️ Sensitive Information Detected")
-                    st.json(sensitive_info)
-
+                    if sensitive_info:
+                        st.json(sensitive_info)
+                    else:
+                        st.write("No sensitive information detected.")
+                
                 # Confidentiality Rating
                 if confidentiality:
                     st.subheader("🔐 Confidentiality Rating")
@@ -275,4 +282,3 @@ if email_content and st.button("🔍 Generate Insights"):
 
 else:
     st.info("✏️ Paste email content and click 'Generate Insights' to begin.")
-
