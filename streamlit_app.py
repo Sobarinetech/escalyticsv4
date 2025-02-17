@@ -1,5 +1,4 @@
 import streamlit as st
-import google.generativeai as genai
 from langdetect import detect
 from textblob import TextBlob
 from fpdf import FPDF
@@ -9,9 +8,6 @@ import json
 import docx2txt
 from PyPDF2 import PdfReader
 import re
-
-# Configure API Key securely from Streamlit's secrets
-genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 
 # Streamlit App Configuration
 st.set_page_config(page_title="Advanced Email AI", page_icon="📧", layout="wide")
@@ -62,17 +58,6 @@ scenario_options = [
     "General Feedback"
 ]
 selected_scenario = st.selectbox("Select a scenario for suggested response:", scenario_options)
-
-# Cache AI Responses for Performance
-@st.cache_data(ttl=3600)
-def get_ai_response(prompt, email_content):
-    try:
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        response = model.generate_content(prompt + email_content[:MAX_EMAIL_LENGTH])
-        return response.text.strip()
-    except Exception as e:
-        st.error(f"AI Error: {e}")
-        return ""
 
 # Additional Analysis Functions
 def get_sentiment(email_content):
