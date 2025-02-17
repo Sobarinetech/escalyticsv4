@@ -275,4 +275,4 @@ if email_content and st.button("🔍 Generate Insights"):
 
 else:
     st.info("✏️ Paste email content and click 'Generate Insights' to begin.")
-``` ▋
+
