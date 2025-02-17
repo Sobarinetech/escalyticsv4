@@ -9,9 +9,16 @@ import json
 import docx2txt
 from PyPDF2 import PdfReader
 import re
+import base64
+from cryptography.fernet import Fernet
 
 # Configure API Key securely from Streamlit's secrets
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+
+# Enterprise-Grade Security
+# Generate encryption key (for demo purposes, generate new key every run)
+encryption_key = Fernet.generate_key()
+cipher_suite = Fernet(encryption_key)
 
 # Streamlit App Configuration
 st.set_page_config(page_title="Advanced Email AI", page_icon="📧", layout="wide")
