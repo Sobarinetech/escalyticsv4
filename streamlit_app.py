@@ -8,6 +8,7 @@ import concurrent.futures
 import json
 import docx2txt
 from PyPDF2 import PdfReader
+import re
 
 # Configure API Key securely from Streamlit's secrets
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
@@ -40,6 +41,9 @@ features = {
     "scenario_responses": True,  # Enable scenario-based suggested responses
     "attachment_analysis": True,  # Enable attachment analysis
     "complexity_reduction": True,  # Enable complexity reduction
+    "phishing_detection": True,  # New Feature for Phishing Detection
+    "sensitive_info_detection": True,  # New Feature for Sensitive Info Detection
+    "confidentiality_rating": True,  # New Feature for Confidentiality Rating
 }
 
 # Email Input Section
@@ -83,6 +87,37 @@ def export_pdf(text):
     pdf.set_font("Arial", size=12)
     pdf.multi_cell(0, 10, text)
     return pdf.output(dest='S').encode('latin1')
+
+def analyze_phishing_links(email_content):
+    phishing_keywords = ["login", "verify", "update account", "account suspended", "urgent action required", "click here"]
+    phishing_links = []
+    urls = re.findall(r'(https?://\S+)', email_content)
+    for url in urls:
+        for keyword in phishing_keywords:
+            if keyword.lower() in url.lower():
+                phishing_links.append(url)
+    return phishing_links
+
+def detect_sensitive_information(email_content):
+    # Regular expressions to detect sensitive information (phone numbers, email addresses, credit card numbers, etc.)
+    sensitive_info_patterns = {
+        "phone_number": r"(\+?\d{1,2}\s?)?(\(?\d{3}\)?|\d{3})[\s\-]?\d{3}[\s\-]?\d{4}",
+        "email_address": r"[\w\.-]+@[\w\.-]+\.\w+",
+        "credit_card": r"\b(?:\d[ -]*?){13,16}\b"
+    }
+    
+    sensitive_data = {}
+    for key, pattern in sensitive_info_patterns.items():
+        matches = re.findall(pattern, email_content)
+        if matches:
+            sensitive_data[key] = matches
+    return sensitive_data
+
+def confidentiality_rating(email_content):
+    # A simple approach to rating confidentiality based on the presence of certain keywords
+    keywords = ["confidential", "private", "restricted", "not for distribution"]
+    rating = sum(1 for keyword in keywords if keyword.lower() in email_content.lower())
+    return min(rating, 5)  # Rating out of 5
 
 # Analyze attachment based on its type
 def analyze_attachment(file):
@@ -130,6 +165,15 @@ if email_content and st.button("🔍 Generate Insights"):
                     # Attachment Analysis
                     attachment_text = analyze_attachment(uploaded_file) if uploaded_file and features["attachment_analysis"] else None
                     future_attachment_analysis = executor.submit(get_ai_response, "Analyze this attachment content:\n\n", attachment_text) if attachment_text else None
+
+                    # Phishing Link Detection
+                    phishing_links = analyze_phishing_links(email_content) if features["phishing_detection"] else []
+
+                    # Sensitive Information Detection
+                    sensitive_info = detect_sensitive_information(email_content) if features["sensitive_info_detection"] else {}
+
+                    # Confidentiality Rating
+                    confidentiality = confidentiality_rating(email_content) if features["confidentiality_rating"] else 0
 
                     # Extract Results
                     summary = future_summary.result() if future_summary else None
@@ -202,6 +246,21 @@ if email_content and st.button("🔍 Generate Insights"):
                     st.subheader("📎 Attachment Analysis")
                     st.write(attachment_analysis)
 
+                # Phishing Links
+                if phishing_links:
+                    st.subheader("⚠️ Phishing Links Detected")
+                    st.write(phishing_links)
+
+                # Sensitive Information Detected
+                if sensitive_info:
+                    st.subheader("⚠️ Sensitive Information Detected")
+                    st.json(sensitive_info)
+
+                # Confidentiality Rating
+                if confidentiality:
+                    st.subheader("🔐 Confidentiality Rating")
+                    st.write(f"Confidentiality Rating: {confidentiality}/5")
+
                 # Export Options
                 if features["export"]:
                     export_data = json.dumps({
@@ -211,7 +270,10 @@ if email_content and st.button("🔍 Generate Insights"):
                         "professionalism_score": professionalism_score,
                         "complexity_reduction": complexity_reduction,
                         "scenario_response": scenario_response,
-                        "attachment_analysis": attachment_analysis
+                        "attachment_analysis": attachment_analysis,
+                        "phishing_links": phishing_links,
+                        "sensitive_info": sensitive_info,
+                        "confidentiality": confidentiality
                     }, indent=4)
                     st.download_button("📥 Download JSON", data=export_data, file_name="analysis.json", mime="application/json")
 
