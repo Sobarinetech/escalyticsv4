@@ -134,64 +134,102 @@ def get_sentiment(email_content):
 def get_readability(email_content):
     return round(TextBlob(email_content).sentiment.subjectivity * 10, 2)  # Rough readability proxy
 
-def export_pdf(text):
+def export_pdf(analysis_data):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=12)
-    pdf.multi_cell(0, 10, text)
+
+    pdf.set_font("Arial", 'B', size=16)
+    pdf.cell(0, 10, "Email Analysis Report", ln=True, align='C')
+    pdf.ln(10)
+
+    pdf.set_font("Arial", 'B', size=12)
+    pdf.cell(0, 10, "Email Summary", ln=True)
+    pdf.set_font("Arial", size=12)
+    pdf.multi_cell(0, 10, analysis_data.get("summary", "N/A"))
+    pdf.ln(5)
+
+    pdf.set_font("Arial", 'B', size=12)
+    pdf.cell(0, 10, "Suggested Response", ln=True)
+    pdf.set_font("Arial", size=12)
+    pdf.multi_cell(0, 10, analysis_data.get("response", "N/A"))
+    pdf.ln(5)
+
+    pdf.set_font("Arial", 'B', size=12)
+    pdf.cell(0, 10, "Key Highlights", ln=True)
+    pdf.set_font("Arial", size=12)
+    pdf.multi_cell(0, 10, analysis_data.get("highlights", "N/A"))
+    pdf.ln(5)
+
+    pdf.set_font("Arial", 'B', size=12)
+    pdf.cell(0, 10, "Sentiment Analysis", ln=True)
+    pdf.set_font("Arial", size=12)
+    sentiment = analysis_data.get("sentiment", {})
+    pdf.multi_cell(0, 10, f"Sentiment: {sentiment.get('label', 'N/A')} (Polarity: {sentiment.get('polarity', 'N/A')})")
+    pdf.ln(5)
+
+    pdf.set_font("Arial", 'B', size=12)
+    pdf.cell(0, 10, "Email Tone", ln=True)
+    pdf.set_font("Arial", size=12)
+    pdf.multi_cell(0, 10, analysis_data.get("tone", "N/A"))
+    pdf.ln(5)
+
+    pdf.set_font("Arial", 'B', size=12)
+    pdf.cell(0, 10, "Actionable Tasks", ln=True)
+    pdf.set_font("Arial", size=12)
+    pdf.multi_cell(0, 10, analysis_data.get("tasks", "N/A"))
+    pdf.ln(5)
+
+    pdf.set_font("Arial", 'B', size=12)
+    pdf.cell(0, 10, "Subject Line Recommendation", ln=True)
+    pdf.set_font("Arial", size=12)
+    pdf.multi_cell(0, 10, analysis_data.get("subject_recommendation", "N/A"))
+    pdf.ln(5)
+
+    pdf.set_font("Arial", 'B', size=12)
+    pdf.cell(0, 10, "Email Clarity Score", ln=True)
+    pdf.set_font("Arial", size=12)
+    pdf.multi_cell(0, 10, analysis_data.get("clarity_score", "N/A"))
+    pdf.ln(5)
+
+    pdf.set_font("Arial", 'B', size=12)
+    pdf.cell(0, 10, "Simplified Explanation", ln=True)
+    pdf.set_font("Arial", size=12)
+    pdf.multi_cell(0, 10, analysis_data.get("complexity_reduction", "N/A"))
+    pdf.ln(5)
+
+    pdf.set_font("Arial", 'B', size=12)
+    pdf.cell(0, 10, "Scenario-Based Suggested Response", ln=True)
+    pdf.set_font("Arial", size=12)
+    pdf.multi_cell(0, 10, analysis_data.get("scenario_response", "N/A"))
+    pdf.ln(5)
+
+    pdf.set_font("Arial", 'B', size=12)
+    pdf.cell(0, 10, "Attachment Analysis", ln=True)
+    pdf.set_font("Arial", size=12)
+    pdf.multi_cell(0, 10, analysis_data.get("attachment_analysis", "N/A"))
+    pdf.ln(5)
+
+    pdf.set_font("Arial", 'B', size=12)
+    pdf.cell(0, 10, "Phishing Links Detected", ln=True)
+    pdf.set_font("Arial", size=12)
+    pdf.multi_cell(0, 10, ', '.join(analysis_data.get("phishing_links", [])))
+    pdf.ln(5)
+
+    pdf.set_font("Arial", 'B', size=12)
+    pdf.cell(0, 10, "Sensitive Information Detected", ln=True)
+    pdf.set_font("Arial", size=12)
+    sensitive_info = analysis_data.get("sensitive_info", {})
+    for key, value in sensitive_info.items():
+        pdf.multi_cell(0, 10, f"{key.capitalize()}: {', '.join(value)}")
+    pdf.ln(5)
+
+    pdf.set_font("Arial", 'B', size=12)
+    pdf.cell(0, 10, "Confidentiality Rating", ln=True)
+    pdf.set_font("Arial", size=12)
+    pdf.multi_cell(0, 10, f"Confidentiality Rating: {analysis_data.get('confidentiality', 'N/A')}/5")
+
     return pdf.output(dest='S').encode('latin1')
-
-def analyze_phishing_links(email_content):
-    phishing_keywords = ["login", "verify", "update account", "account suspended", "urgent action required", "click here"]
-    phishing_links = []
-    urls = re.findall(r'(https?://\S+)', email_content)
-    for url in urls:
-        for keyword in phishing_keywords:
-            if keyword.lower() in url.lower():
-                phishing_links.append(url)
-    return phishing_links
-
-def detect_sensitive_information(email_content):
-    # Regular expressions to detect sensitive information (phone numbers, email addresses, credit card numbers, etc.)
-    sensitive_info_patterns = {
-        "phone_number": r"(\+?\d{1,2}\s?)?(\(?\d{3}\)?|\d{3})[\s\-]?\d{3}[\s\-]?\d{4}",
-        "email_address": r"[\w\.-]+@[\w\.-]+\.\w+",
-        "credit_card": r"\b(?:\d[ -]*?){13,16}\b"
-    }
-    
-    sensitive_data = {}
-    for key, pattern in sensitive_info_patterns.items():
-        matches = re.findall(pattern, email_content)
-        if matches:
-            sensitive_data[key] = matches
-    return sensitive_data
-
-def confidentiality_rating(email_content):
-    # A simple approach to rating confidentiality based on the presence of certain keywords
-    keywords = ["confidential", "private", "restricted", "not for distribution"]
-    rating = sum(1 for keyword in keywords if keyword.lower() in email_content.lower())
-    return min(rating, 5)  # Rating out of 5
-
-# Analyze attachment based on its type
-def analyze_attachment(file):
-    try:
-        if file.type == "text/plain":
-            return file.getvalue().decode("utf-8")
-        elif file.type == "application/pdf":
-            reader = PdfReader(file)
-            text = ""
-            for page in reader.pages:
-                text += page.extract_text()
-            return text
-        elif file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-            return docx2txt.process(file)
-        elif file.type == "message/rfc822":
-            msg = BytesParser(policy=policy.default).parsebytes(file.getvalue())
-            return msg.get_body(preferencelist=('plain')).get_content()
-        else:
-            return "Unsupported file type."
-    except Exception as e:
-        return f"Error analyzing attachment: {e}"
 
 # Process Email and Uploaded File When Button Clicked
 if (email_content or uploaded_file) and st.button("🔍 Generate Insights"):
@@ -315,6 +353,7 @@ if (email_content or uploaded_file) and st.button("🔍 Generate Insights"):
                         "summary": summary,
                         "response": response,
                         "highlights": highlights,
+                        "sentiment": {"label": sentiment_label, "polarity": sentiment},
                         "clarity_score": clarity_score,
                         "complexity_reduction": complexity_reduction,
                         "scenario_response": scenario_response,
@@ -326,7 +365,7 @@ if (email_content or uploaded_file) and st.button("🔍 Generate Insights"):
                     export_json = json.dumps(export_data, indent=4)
                     st.download_button("📥 Download JSON", data=export_json, file_name="analysis.json", mime="application/json")
 
-                    pdf_data = export_pdf(json.dumps(export_data, indent=4))
+                    pdf_data = export_pdf(export_data)
                     st.download_button("📥 Download PDF", data=pdf_data, file_name="analysis.pdf", mime="application/pdf")
 
     except Exception as e:
