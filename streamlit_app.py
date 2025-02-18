@@ -1,4 +1,3 @@
-```python name=streamlit_app.py
 import streamlit as st
 import google.generativeai as genai
 from langdetect import detect
