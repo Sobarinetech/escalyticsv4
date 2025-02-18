@@ -129,7 +129,9 @@ def get_ai_response(prompt, email_content):
 
 # Additional Analysis Functions
 def get_sentiment(email_content):
-    return TextBlob(email_content).sentiment.polarity
+    sentiment = TextBlob(email_content).sentiment.polarity
+    sentiment_label = "Positive" if sentiment > 0 else "Negative" if sentiment < 0 else "Neutral"
+    return sentiment, sentiment_label
 
 def get_readability(email_content):
     return round(TextBlob(email_content).sentiment.subjectivity * 10, 2)  # Rough readability proxy
@@ -336,6 +338,7 @@ if (email_content or uploaded_file) and st.button("🔍 Generate Insights"):
                     scenario_response = future_scenario_response.result() if future_scenario_response else None
                     attachment_analysis = future_attachment_analysis.result() if future_attachment_analysis else None
 
+                sentiment, sentiment_label = get_sentiment(email_content)
                 analysis_data = {
                     "summary": summary,
                     "response": response,
@@ -365,8 +368,6 @@ if (email_content or uploaded_file) and st.button("🔍 Generate Insights"):
 
                 if features["sentiment"]:
                     st.subheader("💬 Sentiment Analysis")
-                    sentiment = get_sentiment(email_content)
-                    sentiment_label = "Positive" if sentiment > 0 else "Negative" if sentiment < 0 else "Neutral"
                     st.write(f"**Sentiment:** {sentiment_label} (Polarity: {sentiment:.2f})")
 
                 if tone:
@@ -425,4 +426,4 @@ if (email_content or uploaded_file) and st.button("🔍 Generate Insights"):
         st.error(f"❌ Error: {e}")
 
 else:
-    st.info("✏️ Paste email content and click 'Generate Insights'")
+    st.info("✏️ Paste email content and click 'Generate Insights' to begin.")
