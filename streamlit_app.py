@@ -11,6 +11,9 @@ from PyPDF2 import PdfReader
 import re
 import base64
 from cryptography.fernet import Fernet
+import email
+from email import policy
+from email.parser import BytesParser
 
 # Configure API Key securely from Streamlit's secrets
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
@@ -58,7 +61,7 @@ email_content = st.text_area("📩 Paste your email content here:", height=200)
 MAX_EMAIL_LENGTH = 2000  # Increased for better analysis
 
 # File Upload Section
-uploaded_file = st.file_uploader("📎 Upload attachment for analysis (optional):", type=["txt", "pdf", "docx"])
+uploaded_file = st.file_uploader("📎 Upload attachment for analysis (optional):", type=["txt", "pdf", "docx", "eml"])
 
 # Scenario Dropdown Selection
 scenario_options = [
@@ -146,7 +149,7 @@ def analyze_phishing_links(email_content):
     urls = re.findall(r'(https?://\S+)', email_content)
     for url in urls:
         for keyword in phishing_keywords:
-            if keyword.lower() in url.lower():
+            if keyword.lower() in url.lower()):
                 phishing_links.append(url)
     return phishing_links
 
@@ -184,6 +187,9 @@ def analyze_attachment(file):
             return text
         elif file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
             return docx2txt.process(file)
+        elif file.type == "message/rfc822":
+            msg = BytesParser(policy=policy.default).parsebytes(file.getvalue())
+            return msg.get_body(preferencelist=('plain')).get_content()
         else:
             return "Unsupported file type."
     except Exception as e:
