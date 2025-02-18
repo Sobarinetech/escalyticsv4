@@ -425,4 +425,4 @@ if (email_content or uploaded_file) and st.button("🔍 Generate Insights"):
         st.error(f"❌ Error: {e}")
 
 else:
-    st.info("✏️ Paste email content and click 'Generate Insights ▋
+    st.info("✏️ Paste email content and click 'Generate Insights')
