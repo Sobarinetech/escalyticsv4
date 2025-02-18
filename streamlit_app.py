@@ -231,6 +231,27 @@ def export_pdf(analysis_data):
 
     return pdf.output(dest='S').encode('latin1')
 
+# Analyze attachment based on its type
+def analyze_attachment(file):
+    try:
+        if file.type == "text/plain":
+            return file.getvalue().decode("utf-8")
+        elif file.type == "application/pdf":
+            reader = PdfReader(file)
+            text = ""
+            for page in reader.pages:
+                text += page.extract_text()
+            return text
+        elif file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+            return docx2txt.process(file)
+        elif file.type == "message/rfc822":
+            msg = BytesParser(policy=policy.default).parsebytes(file.getvalue())
+            return msg.get_body(preferencelist=('plain')).get_content()
+        else:
+            return "Unsupported file type."
+    except Exception as e:
+        return f"Error analyzing attachment: {e}"
+
 # Process Email and Uploaded File When Button Clicked
 if (email_content or uploaded_file) and st.button("🔍 Generate Insights"):
     try:
@@ -283,6 +304,20 @@ if (email_content or uploaded_file) and st.button("🔍 Generate Insights"):
                     complexity_reduction = future_complexity_reduction.result() if future_complexity_reduction else None
                     scenario_response = future_scenario_response.result() if future_scenario_response else None
                     attachment_analysis = future_attachment_analysis.result() if future_attachment_analysis else None
+
+                analysis_data = {
+                    "summary": summary,
+                    "response": response,
+                    "highlights": highlights,
+                    "sentiment": {"label": sentiment_label, "polarity": sentiment},
+                    "clarity_score": clarity_score,
+                    "complexity_reduction": complexity_reduction,
+                    "scenario_response": scenario_response,
+                    "attachment_analysis": attachment_analysis,
+                    "phishing_links": phishing_links,
+                    "sensitive_info": sensitive_info,
+                    "confidentiality": confidentiality
+                }
 
                 # Display Results Based on Enabled Features
                 if summary:
@@ -349,23 +384,10 @@ if (email_content or uploaded_file) and st.button("🔍 Generate Insights"):
 
                 # Export Options
                 if features["export"]:
-                    export_data = {
-                        "summary": summary,
-                        "response": response,
-                        "highlights": highlights,
-                        "sentiment": {"label": sentiment_label, "polarity": sentiment},
-                        "clarity_score": clarity_score,
-                        "complexity_reduction": complexity_reduction,
-                        "scenario_response": scenario_response,
-                        "attachment_analysis": attachment_analysis,
-                        "phishing_links": phishing_links,
-                        "sensitive_info": sensitive_info,
-                        "confidentiality": confidentiality
-                    }
-                    export_json = json.dumps(export_data, indent=4)
+                    export_json = json.dumps(analysis_data, indent=4)
                     st.download_button("📥 Download JSON", data=export_json, file_name="analysis.json", mime="application/json")
 
-                    pdf_data = export_pdf(export_data)
+                    pdf_data = export_pdf(analysis_data)
                     st.download_button("📥 Download PDF", data=pdf_data, file_name="analysis.pdf", mime="application/pdf")
 
     except Exception as e:
