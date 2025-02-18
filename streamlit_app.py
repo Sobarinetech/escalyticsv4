@@ -44,10 +44,8 @@ features = {
     "spam_check": False,
     "readability": False,
     "root_cause": False,
-    "grammar_check": True,
     "clarity": True,
     "best_response_time": False,
-    "professionalism": True,
     "scenario_responses": True,  # Enable scenario-based suggested responses
     "attachment_analysis": True,  # Enable attachment analysis
     "complexity_reduction": True,  # Enable complexity reduction
@@ -215,9 +213,7 @@ if (email_content or uploaded_file) and st.button("🔍 Generate Insights"):
                     future_tone = executor.submit(get_ai_response, "Detect the tone of this email:\n\n", email_content) if features["tone"] else None
                     future_tasks = executor.submit(get_ai_response, "List actionable tasks:\n\n", email_content) if features["task_extraction"] else None
                     future_subject = executor.submit(get_ai_response, "Suggest a professional subject line:\n\n", email_content) if features["subject_recommendation"] else None
-                    future_grammar = executor.submit(get_ai_response, "Check spelling & grammar mistakes and suggest fixes:\n\n", email_content) if features["grammar_check"] else None
                     future_clarity = executor.submit(get_ai_response, "Rate the clarity of this email:\n\n", email_content) if features["clarity"] else None
-                    future_professionalism = executor.submit(get_ai_response, "Rate the professionalism of this email on a scale of 1-10:\n\n", email_content) if features["professionalism"] else None
                     future_complexity_reduction = executor.submit(get_ai_response, "Explain this email in the simplest way possible:\n\n", email_content) if features["complexity_reduction"] else None
                     
                     # Scenario-Based Response
@@ -244,9 +240,7 @@ if (email_content or uploaded_file) and st.button("🔍 Generate Insights"):
                     tone = future_tone.result() if future_tone else None
                     tasks = future_tasks.result() if future_tasks else None
                     subject_recommendation = future_subject.result() if future_subject else None
-                    grammar_issues = future_grammar.result() if future_grammar else None
                     clarity_score = future_clarity.result() if future_clarity else None
-                    professionalism_score = future_professionalism.result() if future_professionalism else None
                     readability_score = get_readability(email_content)
                     complexity_reduction = future_complexity_reduction.result() if future_complexity_reduction else None
                     scenario_response = future_scenario_response.result() if future_scenario_response else None
@@ -283,17 +277,9 @@ if (email_content or uploaded_file) and st.button("🔍 Generate Insights"):
                     st.subheader("📬 Subject Line Recommendation")
                     st.write(subject_recommendation)
 
-                if grammar_issues:
-                    st.subheader("🔎 Grammar & Spelling Check")
-                    st.write(grammar_issues)
-
                 if clarity_score:
                     st.subheader("🔍 Email Clarity Score")
                     st.write(clarity_score)
-
-                if professionalism_score:
-                    st.subheader("🏆 Professionalism Score")
-                    st.write(f"Rated: {professionalism_score} / 10")
 
                 if complexity_reduction:
                     st.subheader("🔽 Simplified Explanation")
@@ -327,9 +313,7 @@ if (email_content or uploaded_file) and st.button("🔍 Generate Insights"):
                 if features["export"]:
                     export_data = json.dumps({
                         "summary": summary, "response": response, "highlights": highlights,
-                        "grammar_issues": grammar_issues,
                         "clarity_score": clarity_score,
-                        "professionalism_score": professionalism_score,
                         "complexity_reduction": complexity_reduction,
                         "scenario_response": scenario_response,
                         "attachment_analysis": attachment_analysis,
