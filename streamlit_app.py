@@ -311,8 +311,10 @@ if (email_content or uploaded_file) and st.button("🔍 Generate Insights"):
 
                 # Export Options
                 if features["export"]:
-                    export_data = json.dumps({
-                        "summary": summary, "response": response, "highlights": highlights,
+                    export_data = {
+                        "summary": summary,
+                        "response": response,
+                        "highlights": highlights,
                         "clarity_score": clarity_score,
                         "complexity_reduction": complexity_reduction,
                         "scenario_response": scenario_response,
@@ -320,8 +322,12 @@ if (email_content or uploaded_file) and st.button("🔍 Generate Insights"):
                         "phishing_links": phishing_links,
                         "sensitive_info": sensitive_info,
                         "confidentiality": confidentiality
-                    }, indent=4)
-                    st.download_button("📥 Download JSON", data=export_data, file_name="analysis.json", mime="application/json")
+                    }
+                    export_json = json.dumps(export_data, indent=4)
+                    st.download_button("📥 Download JSON", data=export_json, file_name="analysis.json", mime="application/json")
+
+                    pdf_data = export_pdf(json.dumps(export_data, indent=4))
+                    st.download_button("📥 Download PDF", data=pdf_data, file_name="analysis.pdf", mime="application/pdf")
 
     except Exception as e:
         st.error(f"❌ Error: {e}")
