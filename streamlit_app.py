@@ -252,6 +252,37 @@ def analyze_attachment(file):
     except Exception as e:
         return f"Error analyzing attachment: {e}"
 
+def analyze_phishing_links(email_content):
+    phishing_keywords = ["login", "verify", "update account", "account suspended", "urgent action required", "click here"]
+    phishing_links = []
+    urls = re.findall(r'(https?://\S+)', email_content)
+    for url in urls:
+        for keyword in phishing_keywords:
+            if keyword.lower() in url.lower():
+                phishing_links.append(url)
+    return phishing_links
+
+def detect_sensitive_information(email_content):
+    # Regular expressions to detect sensitive information (phone numbers, email addresses, credit card numbers, etc.)
+    sensitive_info_patterns = {
+        "phone_number": r"(\+?\d{1,2}\s?)?(\(?\d{3}\)?|\d{3})[\s\-]?\d{3}[\s\-]?\d{4}",
+        "email_address": r"[\w\.-]+@[\w\.-]+\.\w+",
+        "credit_card": r"\b(?:\d[ -]*?){13,16}\b"
+    }
+    
+    sensitive_data = {}
+    for key, pattern in sensitive_info_patterns.items():
+        matches = re.findall(pattern, email_content)
+        if matches:
+            sensitive_data[key] = matches
+    return sensitive_data
+
+def confidentiality_rating(email_content):
+    # A simple approach to rating confidentiality based on the presence of certain keywords
+    keywords = ["confidential", "private", "restricted", "not for distribution"]
+    rating = sum(1 for keyword in keywords if keyword.lower() in email_content.lower())
+    return min(rating, 5)  # Rating out of 5
+
 # Process Email and Uploaded File When Button Clicked
 if (email_content or uploaded_file) and st.button("🔍 Generate Insights"):
     try:
@@ -394,4 +425,4 @@ if (email_content or uploaded_file) and st.button("🔍 Generate Insights"):
         st.error(f"❌ Error: {e}")
 
 else:
-    st.info("✏️ Paste email content and click 'Generate Insights' to begin.")
+    st.info("✏️ Paste email content and click 'Generate Insights ▋
