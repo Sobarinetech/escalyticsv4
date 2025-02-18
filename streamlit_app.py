@@ -207,7 +207,8 @@ def export_pdf(analysis_data):
     pdf.set_font("Arial", size=12)
     phishing_links = analysis_data.get("phishing_links", [])
     if phishing_links:
-        pdf.multi_cell(0, 10, ', '.join(phishing_links))
+        phishing_links_str = [str(link) for link in phishing_links]
+        pdf.multi_cell(0, 10, ', '.join(phishing_links_str))
     else:
         pdf.multi_cell(0, 10, "None")
     pdf.ln(5)
@@ -218,7 +219,8 @@ def export_pdf(analysis_data):
     sensitive_info = analysis_data.get("sensitive_info", {})
     if sensitive_info:
         for key, value in sensitive_info.items():
-            pdf.multi_cell(0, 10, f"{key.capitalize()}: {', '.join(value)}")
+            sensitive_info_str = [str(info) for info in value]
+            pdf.multi_cell(0, 10, f"{key.capitalize()}: {', '.join(sensitive_info_str)}")
     else:
         pdf.multi_cell(0, 10, "None")
     pdf.ln(5)
@@ -262,7 +264,7 @@ def analyze_phishing_links(email_content):
 
 def detect_sensitive_information(email_content):
     sensitive_info_patterns = {
-        "phone_number": r"(\+?\d{1,2}\s?)?(\(?\d{3}\)?|\d{3})[\s\-]?\d{3}[\s\-]?\d{4}",
+        "phone_number": r"(\+?\d{1,2}\s?)?(\(?\d{3}\)?|\d{3})[\s\-]?\d{3}[\\s\-]?\d{4}",
         "email_address": r"[\w\.-]+@[\w\.-]+\.\w+",
         "credit_card": r"\b(?:\d[ -]*?){13,16}\b"
     }
