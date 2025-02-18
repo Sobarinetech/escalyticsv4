@@ -149,7 +149,7 @@ def analyze_phishing_links(email_content):
     urls = re.findall(r'(https?://\S+)', email_content)
     for url in urls:
         for keyword in phishing_keywords:
-            if keyword.lower() in url.lower()):
+            if keyword.lower() in url.lower():
                 phishing_links.append(url)
     return phishing_links
 
@@ -195,9 +195,13 @@ def analyze_attachment(file):
     except Exception as e:
         return f"Error analyzing attachment: {e}"
 
-# Process Email When Button Clicked
-if email_content and st.button("🔍 Generate Insights"):
+# Process Email and Uploaded File When Button Clicked
+if (email_content or uploaded_file) and st.button("🔍 Generate Insights"):
     try:
+        if uploaded_file and uploaded_file.type == "message/rfc822":
+            msg = BytesParser(policy=policy.default).parsebytes(uploaded_file.getvalue())
+            email_content = msg.get_body(preferencelist=('plain')).get_content()
+
         detected_lang = detect(email_content)
         if detected_lang != "en":
             st.error("⚠️ Only English language is supported.")
