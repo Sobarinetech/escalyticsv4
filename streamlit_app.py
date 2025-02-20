@@ -8,8 +8,6 @@ import json
 import docx2txt
 from PyPDF2 import PdfReader
 import re
-import base64
-from cryptography.fernet import Fernet
 import email
 from email import policy
 from email.parser import BytesParser
@@ -24,11 +22,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Configure API Key securely from Streamlit's secrets
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-
-# Enterprise-Grade Security
-# Generate encryption key (for demo purposes, generate new key every run)
-encryption_key = Fernet.generate_key()
-cipher_suite = Fernet(encryption_key)
 
 # Streamlit App Configuration
 st.set_page_config(page_title="Advanced Email AI", page_icon="📧", layout="wide")
@@ -379,10 +372,14 @@ if (email_content or uploaded_file) and st.button("🔍 Generate Insights"):
                     st.subheader("🔐 Confidentiality Rating")
                     st.write(f"Confidentiality Rating: {confidentiality}/5")
 
-                # Button to Check Deliverability
+                # Display extracted email addresses
                 email_list = [email.strip() for email in re.findall(r'[\w\.-]+@[\w\.-]+\.\w+', email_content)]
-                if st.button("Check Deliverability"):
-                    if email_list:
+                if email_list:
+                    st.subheader("📧 Extracted Email Addresses")
+                    st.write(email_list)
+
+                    # Button to Check Deliverability
+                    if st.button("Check Deliverability"):
                         with st.spinner("🔍 Checking email deliverability..."):
                             blacklist = set()
                             disposable_providers = {
