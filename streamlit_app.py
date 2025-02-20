@@ -3,7 +3,6 @@ import google.generativeai as genai
 from langdetect import detect
 from textblob import TextBlob
 from fpdf import FPDF
-from io import BytesIO
 import concurrent.futures
 import json
 import docx2txt
@@ -14,6 +13,14 @@ from cryptography.fernet import Fernet
 import email
 from email import policy
 from email.parser import BytesParser
+
+# Email validation imports
+from email_validator import validate_email, EmailNotValidError
+import dns.resolver
+import smtplib
+import pandas as pd
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Configure API Key securely from Streamlit's secrets
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
@@ -193,6 +200,69 @@ def analyze_attachment(file):
     except Exception as e:
         return f"Error analyzing attachment: {e}"
 
+# Email Validation Functions
+def validate_email_address(email, blacklist, disposable_providers, custom_sender="test@example.com", max_retries=3):
+    """Enhanced email validation with DNS, SMTP, and blacklist checks."""
+    retries = 0
+    
+    # Step 1: Syntax validation
+    try:
+        validate_email(email)
+    except EmailNotValidError as e:
+        return email, "Invalid", f"Invalid syntax: {str(e)}"
+    
+    domain = email.split("@")[-1]
+
+    # Step 2: Blacklist check
+    if domain in blacklist:
+        return email, "Blacklisted", "Domain is blacklisted."
+
+    # Step 3: Disposable email provider check
+    if domain in disposable_providers:
+        return email, "Disposable", "Domain is a disposable email provider."
+
+    # Step 4: DNS Validation
+    while retries < max_retries:
+        try:
+            mx_records = dns.resolver.resolve(domain, "MX")
+            if not mx_records:
+                return email, "Invalid", "No MX records found for domain."
+            
+            # Sort MX records by priority (lowest priority number is best)
+            mx_records.sort(key=lambda r: r.preference)
+            mx_host = str(mx_records[0].exchange).rstrip(".")
+            return email, "Valid", f"MX records found, prioritized at {mx_host}"
+        except dns.resolver.NXDOMAIN:
+            return email, "Invalid", "Domain does not exist."
+        except dns.resolver.Timeout:
+            retries += 1
+            time.sleep(1)  # Sleep before retrying
+        except Exception as e:
+            return email, "Invalid", f"DNS error: {str(e)}"
+    
+    return email, "Invalid", "DNS query failed after multiple retries."
+
+def smtp_check(email, mx_host, custom_sender="test@example.com"):
+    """Performs the SMTP check on a given email."""
+    try:
+        smtp = smtplib.SMTP(mx_host, timeout=10)
+        smtp.helo()
+        smtp.mail(custom_sender)
+        code, _ = smtp.rcpt(email)
+        smtp.quit()
+        if code == 250:
+            return "Valid", "Email exists and is reachable."
+        elif code == 550:
+            return "Invalid", "Mailbox does not exist."
+        elif code == 451:
+            return "Greylisted", "Temporary error, try again later."
+        else:
+            return "Invalid", f"SMTP response code {code}."
+    except smtplib.SMTPConnectError:
+        return "Invalid", "SMTP connection failed."
+    except Exception as e:
+        return "Invalid", f"SMTP error: {str(e)}"
+
 # Process Email and Uploaded File When Button Clicked
 if (email_content or uploaded_file) and st.button("🔍 Generate Insights"):
     try:
@@ -233,6 +303,27 @@ if (email_content or uploaded_file) and st.button("🔍 Generate Insights"):
                     # Confidentiality Rating
                     confidentiality = confidentiality_rating(email_content) if features["confidentiality_rating"] else 0
 
+                    # Email Validation
+                    email_list = [email.strip() for email in re.findall(r'[\w\.-]+@[\w\.-]+\.\w+', email_content)]
+                    blacklist = set()
+                    disposable_providers = {
+                        "tempmail.com", "mailinator.com", "guerrillamail.com", "10minutemail.com", "throwawaymail.com",
+                        "temp-mail.org", "discard.email", "emailondeck.com", "maildrop.cc"
+                    }
+                    validation_results = []
+                    futures_validation = [executor.submit(validate_email_address, email, blacklist, disposable_providers) for email in email_list]
+                    for future in as_completed(futures_validation):
+                        email, status, message = future.result()
+                        if status == "Valid":
+                            mx_host = message.split(", prioritized at ")[-1] if "MX records found" in message else ""
+                            if mx_host:
+                                smtp_status, smtp_message = smtp_check(email, mx_host)
+                                validation_results.append((email, smtp_status, smtp_message))
+                            else:
+                                validation_results.append((email, status, message))
+                        else:
+                            validation_results.append((email, status, message))
+                    
                     # Extract Results
                     summary = future_summary.result() if future_summary else None
                     response = future_response.result() if future_response else None
@@ -308,6 +399,12 @@ if (email_content or uploaded_file) and st.button("🔍 Generate Insights"):
                 if confidentiality:
                     st.subheader("🔐 Confidentiality Rating")
                     st.write(f"Confidentiality Rating: {confidentiality}/5")
+
+                # Email Validation Results
+                if validation_results:
+                    st.subheader("📧 Email Validation Results")
+                    df_validation = pd.DataFrame(validation_results, columns=["Email", "Status", "Message"])
+                    st.dataframe(df_validation)
 
                 # Export Options
                 if features["export"]:
