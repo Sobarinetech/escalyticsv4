@@ -5,4 +5,3 @@ textblob
 fpdf
 docx2txt
 PyPDF2
-email_validator
