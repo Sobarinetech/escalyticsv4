@@ -303,27 +303,6 @@ if (email_content or uploaded_file) and st.button("🔍 Generate Insights"):
                     # Confidentiality Rating
                     confidentiality = confidentiality_rating(email_content) if features["confidentiality_rating"] else 0
 
-                    # Email Validation
-                    email_list = [email.strip() for email in re.findall(r'[\w\.-]+@[\w\.-]+\.\w+', email_content)]
-                    blacklist = set()
-                    disposable_providers = {
-                        "tempmail.com", "mailinator.com", "guerrillamail.com", "10minutemail.com", "throwawaymail.com",
-                        "temp-mail.org", "discard.email", "emailondeck.com", "maildrop.cc"
-                    }
-                    validation_results = []
-                    futures_validation = [executor.submit(validate_email_address, email, blacklist, disposable_providers) for email in email_list]
-                    for future in as_completed(futures_validation):
-                        email, status, message = future.result()
-                        if status == "Valid":
-                            mx_host = message.split(", prioritized at ")[-1] if "MX records found" in message else ""
-                            if mx_host:
-                                smtp_status, smtp_message = smtp_check(email, mx_host)
-                                validation_results.append((email, smtp_status, smtp_message))
-                            else:
-                                validation_results.append((email, status, message))
-                        else:
-                            validation_results.append((email, status, message))
-                    
                     # Extract Results
                     summary = future_summary.result() if future_summary else None
                     response = future_response.result() if future_response else None
@@ -400,11 +379,35 @@ if (email_content or uploaded_file) and st.button("🔍 Generate Insights"):
                     st.subheader("🔐 Confidentiality Rating")
                     st.write(f"Confidentiality Rating: {confidentiality}/5")
 
-                # Email Validation Results
-                if validation_results:
-                    st.subheader("📧 Email Validation Results")
-                    df_validation = pd.DataFrame(validation_results, columns=["Email", "Status", "Message"])
-                    st.dataframe(df_validation)
+                # Button to Check Deliverability
+                email_list = [email.strip() for email in re.findall(r'[\w\.-]+@[\w\.-]+\.\w+', email_content)]
+                if st.button("Check Deliverability"):
+                    if email_list:
+                        with st.spinner("🔍 Checking email deliverability..."):
+                            blacklist = set()
+                            disposable_providers = {
+                                "tempmail.com", "mailinator.com", "guerrillamail.com", "10minutemail.com", "throwawaymail.com",
+                                "temp-mail.org", "discard.email", "emailondeck.com", "maildrop.cc"
+                            }
+                            validation_results = []
+                            with ThreadPoolExecutor(max_workers=20) as executor:
+                                futures_validation = [executor.submit(validate_email_address, email, blacklist, disposable_providers) for email in email_list]
+                                for future in as_completed(futures_validation):
+                                    email, status, message = future.result()
+                                    if status == "Valid":
+                                        mx_host = message.split(", prioritized at ")[-1] if "MX records found" in message else ""
+                                        if mx_host:
+                                            smtp_status, smtp_message = smtp_check(email, mx_host)
+                                            validation_results.append((email, smtp_status, smtp_message))
+                                        else:
+                                            validation_results.append((email, status, message))
+                                    else:
+                                        validation_results.append((email, status, message))
+                            
+                            # Email Validation Results
+                            st.subheader("📧 Email Validation Results")
+                            df_validation = pd.DataFrame(validation_results, columns=["Email", "Status", "Message"])
+                            st.dataframe(df_validation)
 
                 # Export Options
                 if features["export"]:
