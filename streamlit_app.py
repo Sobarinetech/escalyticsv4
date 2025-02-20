@@ -3,17 +3,25 @@ import google.generativeai as genai
 from langdetect import detect
 from textblob import TextBlob
 from fpdf import FPDF
+from io import BytesIO
 import concurrent.futures
 import json
 import docx2txt
 from PyPDF2 import PdfReader
 import re
+import base64
+from cryptography.fernet import Fernet
 import email
 from email import policy
 from email.parser import BytesParser
 
 # Configure API Key securely from Streamlit's secrets
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+
+# Enterprise-Grade Security
+# Generate encryption key (for demo purposes, generate new key every run)
+encryption_key = Fernet.generate_key()
+cipher_suite = Fernet(encryption_key)
 
 # Streamlit App Configuration
 st.set_page_config(page_title="Advanced Email AI", page_icon="📧", layout="wide")
@@ -139,7 +147,7 @@ def analyze_phishing_links(email_content):
     urls = re.findall(r'(https?://\S+)', email_content)
     for url in urls:
         for keyword in phishing_keywords:
-            if keyword.lower() in url.lower()):
+            if keyword.lower() in url.lower():
                 phishing_links.append(url)
     return phishing_links
 
